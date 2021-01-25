@@ -97,16 +97,19 @@ def main(runName,readFile1,readFile2,fastaClassI,fastaClassInonclass,fastaClassI
 		first_line = f.readline()
                 gzipped=1
 		#process_wc=subprocess.Popen(['bash','-c','zcat '+readFile1+' | sed \'2q;d\' - | wc -L'],stdout=subprocess.PIPE)		
-		cmd = "zcat %s | sed '2q;d' | wc -L" % readFile1
+		# cmd = "zcat %s | sed '2q;d' | wc -L" % readFile1
+		cmd = "gzip -cd %s | sed '2q;d'" % readFile1
 		process_wc=subprocess.Popen( ['bash','-c',cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		readlength=process_wc.communicate()[0]
 		print "Input is a gipped file ....."
         except Exception, e:
-		cmd = "sed '2q;d' %s | wc -L" % readFile1
+		# cmd = "sed '2q;d' %s | wc -L" % readFile1
+		cmd = "sed '2q;d' %s" % readFile1
                 process_wc=subprocess.Popen( ['bash','-c',cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 readlength=process_wc.communicate()[0]
                 gzipped=0
 		print "Input is uncompressed fastq file ...."
+	readlength = len(readlength) - 2 # minus '\n' in the string
 	#as shown in the publication HLA typing with RNA-Seq works best by allowing as less mismatches as necessary
 	if int(readlength)<=50:
                 mismatch=1
@@ -305,7 +308,8 @@ def mapping(sam,runName,readFile1,readFile2,bowtiebuild,iteration,mapopt,trim3,g
 		if gzip==0:
 			mapping_cmd="(bowtie -3 "+trim3+" -S "+mapopt+" --al "+runName+".aligned "+bowtiebuild+" -1 "+readFile1+" -2 "+readFile2+" |  awk -F \'\\t\' '$3 != \"*\"{ print $0 }' > "+sam+") 2> "+runName+".bowtielog"
 		else:
-			mapping_cmd="(bowtie -3 "+trim3+" -S "+mapopt+" --al "+runName+".aligned "+bowtiebuild+" -1 <(zcat "+readFile1+") -2 <(zcat "+readFile2+") |  awk -F \'\\t\' '$3 != \"*\"{ print $0 }' > "+sam+") 2> "+runName+".bowtielog"
+			#mapping_cmd="(bowtie -3 "+trim3+" -S "+mapopt+" --al "+runName+".aligned "+bowtiebuild+" -1 <(zcat "+readFile1+") -2 <(zcat "+readFile2+") |  awk -F \'\\t\' '$3 != \"*\"{ print $0 }' > "+sam+") 2> "+runName+".bowtielog"
+			mapping_cmd="(bowtie -3 "+trim3+" -S "+mapopt+" --al "+runName+".aligned "+bowtiebuild+" -1 <(gzip -cd "+readFile1+") -2 <(gzip -cd "+readFile2+") |  awk -F \'\\t\' '$3 != \"*\"{ print $0 }' > "+sam+") 2> "+runName+".bowtielog"
 	if iteration==2:
 		mapping_cmd="bowtie -3 "+trim3+" -S "+mapopt+" "+bowtiebuild+" -1 "+readFile1+" -2 "+readFile2+" "+sam
 	#execute bowtie
